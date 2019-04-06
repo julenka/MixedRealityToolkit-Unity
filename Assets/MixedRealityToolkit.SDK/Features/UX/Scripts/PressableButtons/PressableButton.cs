@@ -59,7 +59,6 @@ namespace Microsoft.MixedReality.Toolkit.UI
         private BoxCollider boxCollider;
 
         private bool isTouching = false;
-        [SerializeField]
         private bool isPressing = false;
 
         ///<summary>
