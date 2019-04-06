@@ -52,12 +52,14 @@ namespace Microsoft.MixedReality.Toolkit.UI
         private const float MaxRetractDistanceBeforeReset = 0.0001f;
 
         private float currentPushDistance = 0.0f;
+        private float pushDistanceOnStart = 0.0f;
 
         private List<Vector3> touchPoints = new List<Vector3>();
         private Transform initialTransform;
         private BoxCollider boxCollider;
 
         private bool isTouching = false;
+        [SerializeField]
         private bool isPressing = false;
 
         ///<summary>
@@ -236,6 +238,7 @@ namespace Microsoft.MixedReality.Toolkit.UI
                 // HandlePressProgress().
                 currentPushDistance = GetFarthestPushDistanceAlongButtonAxis();
             }
+            pushDistanceOnStart = GetFarthestPushDistanceAlongButtonAxis();
 
             // Pulse each proximity light on pointer cursors's interacting with this button.
             foreach (var pointer in eventData.InputSource.Pointers)
@@ -329,7 +332,7 @@ namespace Microsoft.MixedReality.Toolkit.UI
             if (!isPressing)
             {
                 // Compare to our previous push depth. Use previous push distance to handle back-presses.
-                if (pushDistance >= pressDistance && previousPushDistance < pressDistance)
+                if (pushDistance >= pressDistance && previousPushDistance < pressDistance && pushDistance > pushDistanceOnStart)
                 {
                     isPressing = true;
                     ButtonPressed.Invoke();
