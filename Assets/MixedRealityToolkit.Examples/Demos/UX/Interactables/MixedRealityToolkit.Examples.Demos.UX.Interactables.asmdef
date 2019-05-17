@@ -3,7 +3,8 @@
     "references": [
         "Microsoft.MixedReality.Toolkit.SDK",
         "Microsoft.MixedReality.Toolkit",
-        "Microsoft.MixedReality.Toolkit.SDK.Inspectors"
+        "Microsoft.MixedReality.Toolkit.SDK.Inspectors",
+        "Microsoft.MixedReality.Toolkit.Services.InputSystem"
     ],
     "optionalUnityReferences": [],
     "includePlatforms": [],
