@@ -78,17 +78,6 @@ namespace Microsoft.MixedReality.Toolkit.UI
             Z
         }
 
-        /// <summary>
-        /// This enum is used internally to define how an object's bounds are calculated in order to fit the boundingbox
-        /// to it.
-        /// </summary>
-        private enum BoundsCalculationMethod
-        {
-            Collider = 0,
-            Colliders,
-            Renderers,
-            MeshFilters
-        }
         public enum BoundingBoxActivationType
         {
             ActivateOnStart = 0,
@@ -569,9 +558,6 @@ namespace Microsoft.MixedReality.Toolkit.UI
 
         // Half the size of the current bounds
         private Vector3 currentBoundsExtents;
-
-        private BoundsCalculationMethod boundsMethod;
-
 
 
         private List<IMixedRealityInputSource> touchingSources = new List<IMixedRealityInputSource>();
@@ -1129,17 +1115,8 @@ namespace Microsoft.MixedReality.Toolkit.UI
             {
                 Bounds bounds = GetTargetBounds();
                 cachedTargetCollider = Target.AddComponent<BoxCollider>();
-                if (boundsMethod == BoundsCalculationMethod.Renderers)
-                {
-                    cachedTargetCollider.center = bounds.center;
-                    cachedTargetCollider.size = bounds.size;
-                }
-                else if (boundsMethod == BoundsCalculationMethod.Colliders)
-                {
-                    // bounds.center is in world space, but cachedTargetCollider.center is in local space
-                    cachedTargetCollider.center = Target.transform.InverseTransformPoint(bounds.center);
-                    cachedTargetCollider.size = Target.transform.InverseTransformSize(bounds.size);
-                }
+                cachedTargetCollider.center = Target.transform.InverseTransformPoint(bounds.center);
+                cachedTargetCollider.size = Target.transform.InverseTransformSize(bounds.size);
             }
 
             Vector3 scale = cachedTargetCollider.transform.lossyScale;
@@ -1149,14 +1126,19 @@ namespace Microsoft.MixedReality.Toolkit.UI
             cachedTargetCollider.EnsureComponent<NearInteractionGrabbable>();
         }
 
-        private Bounds GetTargetBounds()
+        private Bounds GetHierarchyBounds(GameObject root)
         {
             Bounds bounds = new Bounds();
 
-            List<Transform> toExplore = new List<Transform>();
-            for (int i = 0; i < Target.transform.childCount; i++)
+            if (root.transform.childCount == 0)
             {
-                var child = Target.transform.GetChild(i);
+                bounds = GetSingleObjectBounds(root);
+                return bounds;
+            }
+            List<Transform> toExplore = new List<Transform>();
+            for (int i = 0; i < root.transform.childCount; i++)
+            {
+                var child = root.transform.GetChild(i);
                 if (!child.name.Equals(rigRootName))
                 {
                     toExplore.Add(child);
@@ -1164,8 +1146,7 @@ namespace Microsoft.MixedReality.Toolkit.UI
             }
             if (toExplore.Count == 0)
             {
-                bounds = GetSingleObjectBounds(Target);
-                boundsMethod = BoundsCalculationMethod.Collider;
+                bounds = GetSingleObjectBounds(root);
                 return bounds;
             }
             else
@@ -1175,11 +1156,11 @@ namespace Microsoft.MixedReality.Toolkit.UI
                     var child = toExplore[i];
                     if (bounds.size == Vector3.zero)
                     {
-                        bounds = GetSingleObjectBounds(child.gameObject);
+                        bounds = GetHierarchyBounds(child.gameObject);
                     }
                     else
                     {
-                        Bounds childBounds = GetSingleObjectBounds(child.gameObject);
+                        Bounds childBounds = GetHierarchyBounds(child.gameObject);
                         if (childBounds.size != Vector3.zero)
                         {
                             bounds.Encapsulate(childBounds);
@@ -1187,100 +1168,32 @@ namespace Microsoft.MixedReality.Toolkit.UI
                     }
                 }
 
-                if (bounds.size != Vector3.zero)
-                {
-                    boundsMethod = BoundsCalculationMethod.Colliders;
-                    return bounds;
-                }
-            }
-
-            //simple case: sum of existing colliders
-            Collider[] colliders = Target.GetComponentsInChildren<Collider>();
-            if (colliders.Length > 0)
-            {
-                //Collider.bounds is in world space.
-                bounds = colliders[0].bounds;
-                for (int i = 0; i < colliders.Length; ++i)
-                {
-                    Bounds colliderBounds = colliders[i].bounds;
-                    if (colliderBounds.size != Vector3.zero)
-                    {
-                        bounds.Encapsulate(colliderBounds);
-                    }
-                }
-                if (bounds.size != Vector3.zero)
-                {
-                    boundsMethod = BoundsCalculationMethod.Colliders;
-                    return bounds;
-                }
-            }
-
-            //Renderer bounds is local. Requires transform to global coordinate system.
-            Renderer[] childRenderers = Target.GetComponentsInChildren<Renderer>();
-            if (childRenderers.Length > 0)
-            {
-                bounds = new Bounds();
-                bounds = childRenderers[0].bounds;
-                for (int i = 0; i < childRenderers.Length; ++i)
-                {
-                    bounds.Encapsulate(childRenderers[i].bounds);
-                }
-
-                GetCornerPositionsFromBounds(bounds, ref boundsCorners);
-                for (int c = 0; c < boundsCorners.Length; ++c)
-                {
-                    GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                    cube.name = c.ToString();
-                    cube.transform.localScale = new Vector3(0.02f, 0.02f, 0.02f);
-                    cube.transform.position = boundsCorners[c];
-                }
-
-                boundsMethod = BoundsCalculationMethod.Renderers;
                 return bounds;
             }
-
-            MeshFilter[] meshFilters = Target.GetComponentsInChildren<MeshFilter>();
-            if (meshFilters.Length > 0)
-            {
-                //Mesh.bounds is local space bounding volume
-                bounds.size = meshFilters[0].mesh.bounds.size;
-                bounds.center = meshFilters[0].mesh.bounds.center;
-                for (int i = 0; i < meshFilters.Length; ++i)
-                {
-                    bounds.Encapsulate(meshFilters[i].mesh.bounds);
-                }
-                if (bounds.size != Vector3.zero)
-                {
-                    bounds.center = Target.transform.position;
-                    boundsMethod = BoundsCalculationMethod.MeshFilters;
-                    return bounds;
-                }
-            }
-
-            BoxCollider boxCollider = Target.AddComponent<BoxCollider>();
-            bounds = boxCollider.bounds;
-            Destroy(boxCollider);
-            boundsMethod = BoundsCalculationMethod.Collider;
-            return bounds;
         }
 
-        private Bounds GetSingleObjectBounds(GameObject gameObject)
+        private Bounds GetTargetBounds()
         {
-            Bounds bounds = new Bounds(Vector3.zero, Vector3.zero);
-            BoxCollider boxCollider;
-            boxCollider = gameObject.GetComponent<BoxCollider>();
-            if (boxCollider == null)
+            return GetHierarchyBounds(Target);
+        }
+
+        private Bounds GetSingleObjectBounds(GameObject leaf)
+        {
+            var boxCollider = leaf.GetComponent<BoxCollider>();
+            if (boxCollider != null)
             {
-                boxCollider = gameObject.AddComponent<BoxCollider>();
-                bounds = boxCollider.bounds;
-                DestroyImmediate(boxCollider);
-            }
-            else
-            {
-                bounds = boxCollider.bounds;
+                return boxCollider.bounds;
+
             }
 
-            return bounds;
+            // Note: this returns an axis-aligned bounding box
+            var renderer = leaf.GetComponent<Renderer>();
+            if (renderer != null)
+            {
+                return renderer.bounds;
+            }
+
+            return new Bounds(Vector3.zero, Vector3.zero);
         }
         private void SetMaterials()
         {
