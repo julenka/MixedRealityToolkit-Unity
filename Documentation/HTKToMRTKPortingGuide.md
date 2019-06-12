@@ -125,7 +125,6 @@ Some Utilities have been reconciled as duplicates with the Solver system. Please
 
 | HTK 2017 |  MRTK v2  |
 |----------|-----------|
-| Billboard | [`RadialView`](xref:Microsoft.MixedReality.Toolkit.Utilities.Solvers.RadialView) [Solver](README_Solver.md) |
 | Tagalong | [`RadialView`](xref:Microsoft.MixedReality.Toolkit.Utilities.Solvers.RadialView) or [`Orbital`](xref:Microsoft.MixedReality.Toolkit.Utilities.Solvers.Orbital) [Solver](README_Solver.md) |
 | FixedAngularSize | [`ConstantViewSize`](xref:Microsoft.MixedReality.Toolkit.Utilities.Solvers.ConstantViewSize) [Solver](README_Solver.md) |
 | FpsDisplay | [Diagnostics System](Diagnostics/DiagnosticsSystemGettingStarted.md) (in Configuration Profile) |
