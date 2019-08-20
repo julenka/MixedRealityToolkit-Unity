@@ -29,6 +29,7 @@ including some files moving to new folder locations. Breaking change details, in
 For the smoothest upgrade path, please use the following steps.
 
 1. Close Unity
+1. Save any MRTK extensions you wrote (that are from the MixedRealityToolkit.Extensions folder)
 1. Delete **MixedRealityToolkit** (the project may not have all listed folders)
     - MixedRealityToolkit
     - MixedRealityToolkit.Examples
@@ -46,6 +47,7 @@ For the smoothest upgrade path, please use the following steps.
     - (Optional) Tools
     - (Optional) Extensions
     - (Optional) Examples
+1. Re-import any previous MRTK extensions you wrote.
 1. For each scene in the project
     - Delete **MixedRealityToolkit** and **MixedRealityPlayspace**, if present, from the hierarchy
     - Select **MixedRealityToolkit -> Add to Scene and Configure**
