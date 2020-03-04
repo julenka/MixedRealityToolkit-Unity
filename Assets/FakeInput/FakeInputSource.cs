@@ -19,7 +19,7 @@ public class FakeInputSource : MonoBehaviour
     #region FakeInputSource
     public bool isSelectPressed;
     private TestInputDeviceManager deviceManager;
-    public Handedness handedness;
+    public Handedness handedness = Handedness.Right;
     public SupportedControllerType controllerType = SupportedControllerType.ArticulatedHand;
 
     void Awake()
@@ -73,8 +73,12 @@ public class FakeInputSource : MonoBehaviour
     {
         public TestController(TrackingState trackingState, Handedness controllerHandedness, IMixedRealityInputSource inputSource = null, MixedRealityInteractionMapping[] interactions = null) : base(trackingState, controllerHandedness, inputSource, interactions)
         {
+        }
+
+        public override void SetupDefaultInteractions()
+        {
             var inputActions = MixedRealityToolkit.Instance.ActiveProfile.InputSystemProfile.InputActionsProfile.InputActions;
-            MixedRealityInteractionMapping[] interactions2 = new[]
+            MixedRealityInteractionMapping[] interactions = new[]
             {
                 new MixedRealityInteractionMapping(0, "Spatial Pointer", AxisType.SixDof, DeviceInputType.SpatialPointer, Array.Find(inputActions, x => x.Description.Equals("Pointer Pose"))),
                 new MixedRealityInteractionMapping(1, "Spatial Grip", AxisType.SixDof, DeviceInputType.SpatialGrip, Array.Find(inputActions, x => x.Description.Equals("Grip Pose"))),
@@ -83,7 +87,7 @@ public class FakeInputSource : MonoBehaviour
                 new MixedRealityInteractionMapping(4, "Index Finger Pose", AxisType.SixDof, DeviceInputType.IndexFinger, Array.Find(inputActions, x => x.Description.Equals("Index Finger Pose")))
             };
 
-            AssignControllerMappings(interactions2);
+            AssignControllerMappings(interactions);
         }
 
     }
