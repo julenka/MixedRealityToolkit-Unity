@@ -96,10 +96,10 @@ namespace Microsoft.MixedReality.Toolkit.Experimental.UI
         private TouchScreenKeyboard keyboard = null;
 
         private Coroutine stateUpdate;
+        private string prevKeyboardText = "";
 #endif
 
         private bool multiLine = false;
-
         #endregion Private fields
 
         #region MonoBehaviour Implementation
@@ -201,6 +201,9 @@ namespace Microsoft.MixedReality.Toolkit.Experimental.UI
         {
             Text = text;
             this.multiLine = multiLine;
+#if WINDOWS_UWP
+            MovePreviewCaretToEnd();
+#endif
 
             // 2019/08/14: We show the keyboard even when the keyboard is already visible because on HoloLens 1
             // and WMR the events OnKeyboardShowing and OnKeyboardHiding do not fire
@@ -217,6 +220,7 @@ namespace Microsoft.MixedReality.Toolkit.Experimental.UI
             {
                 keyboard.text = Text;
                 UnityEngine.WSA.Application.InvokeOnUIThread(() => inputPane?.TryShow(), false);
+                prevKeyboardText = keyboard.text;
             }
             else
             {
@@ -252,41 +256,19 @@ namespace Microsoft.MixedReality.Toolkit.Experimental.UI
         {
             if (keyboard != null)
             {
-                // Handle character deletion.
-                if (UnityEngine.Input.GetKeyDown(KeyCode.Delete) || 
-                    UnityEngine.Input.GetKeyDown(KeyCode.Backspace))
+                string keyboardText = keyboard.text;
+                if (keyboardText.Length > prevKeyboardText.Length)
                 {
-                    if (CaretIndex > 0)
-                    {
-                        Text = Text.Remove(CaretIndex - 1, 1);
-                        keyboard.text = Text;
-                        --CaretIndex;
-                    }
+                    string newStr = keyboardText.Substring(prevKeyboardText.Length);
+                    prevKeyboardText = keyboardText;
+                    Text = Text.Insert(CaretIndex, newStr);
+                    CaretIndex += newStr.Length;
                 }
-
-                // Add the new characters.
-                var characterDelta = keyboard.text.Length - Text.Length;
-                var caretWasAtEnd = IsPreviewCaretAtEnd();
-
-                if (characterDelta > 0)
+                else if (keyboardText.Length < prevKeyboardText.Length)
                 {
-                    var newCharacters = keyboard.text.Substring(Text.Length, characterDelta);
-                    Text = Text.Insert(CaretIndex, newCharacters);
-                    keyboard.text = Text;
-
-                    if (caretWasAtEnd)
-                    {
-                        MovePreviewCaretToEnd();
-                    }
-                    else
-                    {
-                        CaretIndex += newCharacters.Length;
-                    }
-                }
-                else if (characterDelta < 0)
-                {
-                    // Take what is currently in the keyboard and move the caret to the end.
-                    Text = keyboard.text;
+                    // We don't know of any cases where this happens during typing,
+					//  but just in case, reset the text
+                    Text = keyboardText;
                     MovePreviewCaretToEnd();
                 }
 
@@ -303,14 +285,33 @@ namespace Microsoft.MixedReality.Toolkit.Experimental.UI
                     CaretIndex = Mathf.Clamp(CaretIndex + 1, 0, Text.Length);
                 }
 
+                // Handle character deletion
+                // Handle character deletion.
+				if (UnityEngine.Input.GetKeyDown(KeyCode.Delete) ||
+					UnityEngine.Input.GetKeyDown(KeyCode.Backspace))
+				{
+					if (CaretIndex > 0)
+					{
+						Text = Text.Remove(CaretIndex - 1, 1);
+						keyboard.text = Text;
+						CaretIndex--;
+					}
+				}
+
                 // Handle commit via the return key.
-                if (!multiLine)
+
+                if (UnityEngine.Input.GetKeyDown(KeyCode.Return))
                 {
-                    if (UnityEngine.Input.GetKeyDown(KeyCode.Return))
+                    if (!multiLine)
                     {
                         onCommitText?.Invoke();
 
                         HideKeyboard();
+                    }
+                    else
+                    {
+                        Text += "\n";
+                        CaretIndex++;
                     }
                 }
             }
